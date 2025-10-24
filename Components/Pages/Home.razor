@@ -1,0 +1,81 @@
+﻿@page "/"
+
+@using BlazzorDbzPersonagem.models
+@inject HttpClient Http
+
+<h1>Busca de Personagem DBZ</h1>
+
+<input type="number" @bind="PersonagemId" placeholder="Digite o ID do personagem (ex: 1)" />
+<button @onclick="BuscarPersonagem" class="btn btn-primary">Buscar</button>
+
+@if (isLoading)
+{
+    <p><em>Carregando...</em></p>
+}
+else if (errorMessage != null)
+{
+    <p class="text-danger">@errorMessage</p>
+}
+else if (personagem != null)
+{
+    <h2>@personagem.name</h2>
+
+    <h3>Planeta de Origem:</h3>
+    <p>@(personagem.originPlanet?.name ?? "Desconhecido")</p>
+
+    <h3>Transformações:</h3>
+    @if (personagem.transformations != null && personagem.transformations.Any())
+    {
+        <ul>
+            @foreach (var trans in personagem.transformations)
+            {
+                <li>@trans.name (Ki: @trans.ki)</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>Nenhuma transformação conhecida.</p>
+    }
+}
+
+@code {
+    private Personagem? personagem;
+    private int PersonagemId { get; set; } = 1;
+    private bool isLoading = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await BuscarPersonagem();
+    }
+
+    private async Task BuscarPersonagem()
+    {
+        if (PersonagemId <= 0) return;
+
+        isLoading = true;
+        personagem = null;
+        errorMessage = null;
+
+        try
+        {
+            var url = $"https://dragonball-api.com/api/characters/{PersonagemId}";
+
+            personagem = await Http.GetFromJsonAsync<Personagem>(url);
+
+            if (personagem == null)
+            {
+                errorMessage = $"Personagem com ID {PersonagemId} não encontrado.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"Erro ao buscar o personagem. Verifique o ID ou sua conexão. (Detalhes: {ex.Message})";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
